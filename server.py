@@ -50,11 +50,11 @@ except:
 # continuously accept connections
 while True:
   print ('Waiting for connection...')
-  clientSocket = None
-
   # Accept connection from client and store in the clientSocket
   try:
     # ~~~~ INSERT CODE ~~~~
+    clientSocket = None
+    clientSocket, addr = serverSocket.accept()
     # ~~~~ END CODE INSERT ~~~~
     print ('Received a connection')
   except:
@@ -64,6 +64,12 @@ while True:
   # Get HTTP request from client
   # and store it in the variable: message_bytes
   # ~~~~ INSERT CODE ~~~~
+  while True:
+    message_bytes = clientSocket.recv(1024)
+    clientSocket.send(message_bytes)
+    if message_bytes.decode().lower() == "exit":
+      break
+  clientSocket.close()
   # ~~~~ END CODE INSERT ~~~~
   message = message_bytes.decode('utf-8')
   print ('Received request:')
