@@ -61,8 +61,8 @@ while True:
     print ('Failed to accept connection')
     sys.exit()
     
-  while True: 
-
+  
+  while True:
     # Get HTTP request from client
     # and store it in the variable: message_bytes
     # ~~~~ INSERT CODE ~~~~
@@ -102,7 +102,7 @@ while True:
 
     print ('Requested Resource:\t' + resource)
 
-    # Check if resource is in cache
+  # Check if resource is in cache
     try:
       cacheLocation = './' + hostname + resource
       if cacheLocation.endswith('/'):
@@ -114,8 +114,8 @@ while True:
       fileExists = os.path.isfile(cacheLocation) 
       
       # modification
-      # if not os.path.isfile(cacheLocation):
-      #   raise Exception("Cache file not found")
+      if not os.path.isfile(cacheLocation):
+        print("Not a file")
       
       # Check whether the file is currently in the cache
       cacheFile = open(cacheLocation,'r')
@@ -206,9 +206,8 @@ while True:
         print ('client socket shutdown for writing')
       except OSError as err:
         print ('origin server request failed. ' + err.strerror)
-        
+
     try:
       clientSocket.close()
     except:
       print ('Failed to close client socket')
-    break
