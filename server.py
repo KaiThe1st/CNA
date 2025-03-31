@@ -190,6 +190,24 @@ while True:
 
         # Get the response from the origin server
         # ~~~~ INSERT CODE ~~~~
+        try:
+          # Receive the response in chunks
+          response = b''  # Initialize an empty byte string to store the response
+    
+          while True:
+              chunk = originServerSocket.recv(1024)  # Receive data in chunks
+              if not chunk:  # If no more data is received, exit the loop
+                break
+              response += chunk  # Append the chunk to the response
+
+          # Convert the response bytes to a string (assuming it's text-based, like HTTP)
+          response_str = response.decode('utf-8')
+          print('Response received from origin server:')
+          print(response_str)
+
+        except socket.error:
+          print('Error receiving response from origin server')
+          sys.exit()
         # ~~~~ END CODE INSERT ~~~~
 
         # Send the response to the client
