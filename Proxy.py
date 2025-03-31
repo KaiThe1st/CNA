@@ -189,14 +189,31 @@ while True:
       except Exception as e:
           print(f'Error receiving response from origin server: {e}')
           sys.exit()
-      print(response)
       # ~~~~ END CODE INSERT ~~~~
       # Send the response to the client
       # ~~~~ INSERT CODE ~~~~
       response_str = response.decode('utf-8')
       response_lines = response_str.split("\r\n")
       status_line = response_lines[0]
-      print(status_line)
+      
+      status_code = int(status_line.split(" ")[1])
+      if status_code in (301, 302):
+        for line in response_lines:
+          if line.lower().startswith("location:"):
+            location = line.split(":", 1)[1].strip()
+            break
+          
+        # if location:
+        #   print("New location:", location)
+        #   location = re.sub('^(/?)http(s?)://', '', location, count=1)
+        #   location = location.replace('/..', '')
+        #   redirectedResourceParts = location.split('/', 1)
+        #   hostname = redirectedResourceParts[0]
+        #   redirectedResource = '/'
+        #   if len(redirectedResourceParts) == 2:
+        #     # Resource is absolute URI with hostname and resource
+        #     redirectedResource = redirectedResource + redirectedResourceParts[1]
+          
       try:
         clientSocket.sendall(response)  # Send the response to the client (as bytes)
         print('Response sent to the client\n')
@@ -205,17 +222,18 @@ while True:
         sys.exit()
       # ~~~~ END CODE INSERT ~~~~
       # Create a new file in the cache for the requested file.
-      cacheDir, file = os.path.split(cacheLocation)
-      print ('cached directory ' + cacheDir)
-      if not os.path.exists(cacheDir):
-        os.makedirs(cacheDir)
-      cacheFile = open(cacheLocation, 'wb')
-      # Save origin server response in the cache file
-      # ~~~~ INSERT CODE ~~~~
-      cacheFile.write(response)  # Write the raw response bytes to the cache file
-      # ~~~~ END CODE INSERT ~~~~
-      cacheFile.close()
-      print ('cache file closed')
+      if status_code not in (301, 302):
+        cacheDir, file = os.path.split(cacheLocation)
+        print ('cached directory ' + cacheDir)
+        if not os.path.exists(cacheDir):
+          os.makedirs(cacheDir)
+        cacheFile = open(cacheLocation, 'wb')
+        # Save origin server response in the cache file
+        # ~~~~ INSERT CODE ~~~~
+        cacheFile.write(response)  # Write the raw response bytes to the cache file
+        # ~~~~ END CODE INSERT ~~~~
+        cacheFile.close()
+        print ('cache file closed')
       # finished communicating with origin server - shutdown socket writes
       print ('origin response received. Closing sockets')
       originServerSocket.close()
