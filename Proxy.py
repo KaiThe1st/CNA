@@ -116,6 +116,14 @@ while True:
     # Send back response to client 
     # ~~~~ INSERT CODE ~~~~
     response = ''.join(cacheData)
+    max_age = 0
+    date = ""
+    for line in response:
+      if line.lower().startswith("max-age:"):
+        max_age = int(line.split(":", 1)[1].strip())
+      if line.lower().startswith("date:"):
+        date = line.split(":", 1)[1].strip()
+        break
     response.replace('\n','\r\n')
     cacheData = response
     clientSocket.send(response.encode())
@@ -200,6 +208,7 @@ while True:
         if line.lower().startswith("cache-control:"):
           cache_control = line.split(":", 1)[1].strip()
           break
+      
 
           
         # if location:
