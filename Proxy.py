@@ -92,7 +92,12 @@ while True:
   print ('Requested Resource:\t' + resource)
   #Check if resource is in cache
   try:
-    cacheLocation = './' + hostname + resource
+    cacheLocation = ""
+    if "redirect" in resource:
+      modifiedResource = resource.split('?',1)[0]
+      cacheLocation = './' + hostname + modifiedResource
+    else:
+      cacheLocation = './' + hostname + resource
     if cacheLocation.endswith('/'):
         cacheLocation = cacheLocation + 'default'
     print ('Cache location:\t\t' + cacheLocation)
@@ -190,6 +195,7 @@ while True:
       
       status_code = int(status_line.split(" ")[1])
       
+      cache_control = ""
       for line in response_lines:
         if line.lower().startswith("cache-control:"):
           cache_control = line.split(":", 1)[1].strip()
@@ -215,7 +221,7 @@ while True:
         sys.exit()
       # ~~~~ END CODE INSERT ~~~~
       # Create a new file in the cache for the requested file.
-      if status_code not in (302): 
+      if not status_code == 302: 
         if not cache_control == "no-store":
           cacheDir, file = os.path.split(cacheLocation)
           print ('cached directory ' + cacheDir)
