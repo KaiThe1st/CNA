@@ -118,8 +118,7 @@ while True:
     cacheFile.close()
     print ('Sent to the client:')
     print ('> ' + cacheData)
-  except Exception as e:
-    print(e)
+  except:
     # cache miss.  Get resource from origin server
     originServerSocket = None
     # Create a socket to connect to origin server
@@ -144,14 +143,6 @@ while True:
       # originServerRequestHeader is the second line in the request
       # ~~~~ INSERT CODE ~~~~
       originServerRequest = f"{method} {resource} {version}\r\n"
-          
-      # headers = {}
-      # for i in range(3, len(requestParts), 2):  # Start from index 3 where headers begin
-      #   header_key = requestParts[i][:-1]  # Remove the colon (:) from the header key
-      #   header_value = requestParts[i + 1]  # The next element is the header value
-      #   headers[header_key] = header_value
-      
-      # for key, value in headers.items():
       originServerRequestHeader += f"Host: {hostname}\r\n\r\n"
       # ~~~~ END CODE INSERT ~~~~
       # Construct the request to send to the origin server
@@ -192,16 +183,18 @@ while True:
       # ~~~~ END CODE INSERT ~~~~
       # Send the response to the client
       # ~~~~ INSERT CODE ~~~~
+      
       response_str = response.decode('utf-8')
       response_lines = response_str.split("\r\n")
       status_line = response_lines[0]
       
       status_code = int(status_line.split(" ")[1])
-      if status_code in (301, 302):
-        for line in response_lines:
-          if line.lower().startswith("location:"):
-            location = line.split(":", 1)[1].strip()
-            break
+      
+      for line in response_lines:
+        if line.lower().startswith("cache-control:"):
+          cache_control = line.split(":", 1)[1].strip()
+          break
+
           
         # if location:
         #   print("New location:", location)
@@ -222,7 +215,7 @@ while True:
         sys.exit()
       # ~~~~ END CODE INSERT ~~~~
       # Create a new file in the cache for the requested file.
-      if status_code not in (301, 302):
+      if status_code not in (301, 302) or cache_control == "no-store":
         cacheDir, file = os.path.split(cacheLocation)
         print ('cached directory ' + cacheDir)
         if not os.path.exists(cacheDir):
@@ -233,9 +226,9 @@ while True:
         cacheFile.write(response)  # Write the raw response bytes to the cache file
         # ~~~~ END CODE INSERT ~~~~
         cacheFile.close()
-        print ('cache file closed')
+        print('cache file closed')
       # finished communicating with origin server - shutdown socket writes
-      print ('origin response received. Closing sockets')
+      print('origin response received. Closing sockets')
       originServerSocket.close()
       
       clientSocket.shutdown(socket.SHUT_WR)
