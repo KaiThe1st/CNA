@@ -215,21 +215,22 @@ while True:
         sys.exit()
       # ~~~~ END CODE INSERT ~~~~
       # Create a new file in the cache for the requested file.
-      if status_code not in (301, 302) or cache_control == "no-store":
-        cacheDir, file = os.path.split(cacheLocation)
-        print ('cached directory ' + cacheDir)
-        if not os.path.exists(cacheDir):
-          os.makedirs(cacheDir)
-        cacheFile = open(cacheLocation, 'wb')
-        # Save origin server response in the cache file
-        # ~~~~ INSERT CODE ~~~~
-        cacheFile.write(response)  # Write the raw response bytes to the cache file
-        # ~~~~ END CODE INSERT ~~~~
-        cacheFile.close()
-        print('cache file closed')
-      # finished communicating with origin server - shutdown socket writes
-      print('origin response received. Closing sockets')
-      originServerSocket.close()
+      if status_code not in (302): 
+        if not cache_control == "no-store":
+          cacheDir, file = os.path.split(cacheLocation)
+          print ('cached directory ' + cacheDir)
+          if not os.path.exists(cacheDir):
+            os.makedirs(cacheDir)
+          cacheFile = open(cacheLocation, 'wb')
+          # Save origin server response in the cache file
+          # ~~~~ INSERT CODE ~~~~
+          cacheFile.write(response)  # Write the raw response bytes to the cache file
+          # ~~~~ END CODE INSERT ~~~~
+          cacheFile.close()
+          print('cache file closed')
+        # finished communicating with origin server - shutdown socket writes
+        print('origin response received. Closing sockets')
+        originServerSocket.close()
       
       clientSocket.shutdown(socket.SHUT_WR)
       print ('client socket shutdown for writing')
