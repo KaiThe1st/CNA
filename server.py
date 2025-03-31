@@ -114,8 +114,8 @@ while True:
       fileExists = os.path.isfile(cacheLocation) 
       
       # modification
-      if not os.path.isfile(cacheLocation):
-        print("Not a file")
+      # if not os.path.isfile(cacheLocation):
+      #   print("Not a file")
       
       # Check whether the file is currently in the cache
       cacheFile = open(cacheLocation,'r')
@@ -159,6 +159,17 @@ while True:
         # originServerRequest is the first line in the request and
         # originServerRequestHeader is the second line in the request
         # ~~~~ INSERT CODE ~~~~
+        originServerRequest = f"{method} {resource} {version}\r\n"
+            
+        headers = {}
+        for i in range(3, len(requestParts), 2):  # Start from index 3 where headers begin
+          header_key = requestParts[i][:-1]  # Remove the colon (:) from the header key
+          header_value = requestParts[i + 1]  # The next element is the header value
+          headers[header_key] = header_value
+        
+        for key, value in headers.items():
+          originServerRequestHeader += f"{key}: {value}\r\n"
+
         # ~~~~ END CODE INSERT ~~~~
 
         # Construct the request to send to the origin server
