@@ -63,7 +63,7 @@ while True:
   # Get HTTP request from client
   # and store it in the variable: message_bytes
   # ~~~~ INSERT CODE ~~~~
-  message_bytes = clientSocket.recv(1024)
+  message_bytes = clientSocket.recv(BUFFER_SIZE)
   # ~~~~ END CODE INSERT ~~~~
   message = message_bytes.decode('utf-8')
   print ('Received request:')
@@ -110,15 +110,16 @@ while True:
     # ProxyServer finds a cache hit
     # Send back response to client 
     # ~~~~ INSERT CODE ~~~~
-    headers, body = ''.join(cacheData).split('\r\n\r\n', 1)
-    
-    response = headers + '\r\n\r\n' + body
+    response = ''.join(cacheData)
+    response.replace('\n','\r\n')
+    cacheData = response
     clientSocket.send(response.encode())
     # ~~~~ END CODE INSERT ~~~~
     cacheFile.close()
     print ('Sent to the client:')
     print ('> ' + cacheData)
-  except:
+  except Exception as e:
+    print(e)
     # cache miss.  Get resource from origin server
     originServerSocket = None
     # Create a socket to connect to origin server
@@ -144,17 +145,17 @@ while True:
       # ~~~~ INSERT CODE ~~~~
       originServerRequest = f"{method} {resource} {version}\r\n"
           
-      headers = {}
-      for i in range(3, len(requestParts), 2):  # Start from index 3 where headers begin
-        header_key = requestParts[i][:-1]  # Remove the colon (:) from the header key
-        header_value = requestParts[i + 1]  # The next element is the header value
-        headers[header_key] = header_value
+      # headers = {}
+      # for i in range(3, len(requestParts), 2):  # Start from index 3 where headers begin
+      #   header_key = requestParts[i][:-1]  # Remove the colon (:) from the header key
+      #   header_value = requestParts[i + 1]  # The next element is the header value
+      #   headers[header_key] = header_value
       
-      for key, value in headers.items():
-        originServerRequestHeader += f"{key}: {value}\r\n"
+      # for key, value in headers.items():
+      originServerRequestHeader += f"Host: {hostname}\r\n\r\n"
       # ~~~~ END CODE INSERT ~~~~
       # Construct the request to send to the origin server
-      request = originServerRequest + '\r\n' + originServerRequestHeader + '\r\n\r\n'
+      request = originServerRequest + originServerRequestHeader
       # Request the web resource from origin server
       print ('Forwarding request to origin server:')
       for line in request.split('\r\n'):
@@ -167,25 +168,35 @@ while True:
       print('Request sent to origin server\n')
       # Get the response from the origin server
       # ~~~~ INSERT CODE ~~~~
-      try:
-        # Receive the response in chunks
-        response = b''  # Initialize an empty byte string to store the response
+      # try:
+      #   # Receive the response in chunks
+      #   response = b''  # Initialize an empty byte string to store the response
   
-        while True:
-            chunk = originServerSocket.recv(1024)  # Receive data in chunks
-            if not chunk:  # If no more data is received, exit the loop
-              break
-            response += chunk  # Append the chunk to the response
-        # Convert the response bytes to a string (assuming it's text-based, like HTTP)
-        response_str = response.decode('utf-8')
-        print('Response received from origin server:')
-        print(response_str)
+      #   while True:
+      #       chunk = originServerSocket.recv(1024)  # Receive data in chunks
+      #       if not chunk:  # If no more data is received, exit the loop
+      #         break
+      #       response += chunk  # Append the chunk to the response
+      #   # Convert the response bytes to a string (assuming it's text-based, like HTTP)
+      #   response_str = response.decode('utf-8')
+      #   print('Response received from origin server:')
+      #   print(response_str)
+      # except Exception as e:
+      #   print(f'Error receiving response from origin server: {e}')
+      #   sys.exit()
+      try:
+        response = originServerSocket.recv(BUFFER_SIZE)
       except Exception as e:
-        print(f'Error receiving response from origin server: {e}')
-        sys.exit()
+          print(f'Error receiving response from origin server: {e}')
+          sys.exit()
+      print(response)
       # ~~~~ END CODE INSERT ~~~~
       # Send the response to the client
       # ~~~~ INSERT CODE ~~~~
+      response_str = response.decode('utf-8')
+      response_lines = response_str.split("\r\n")
+      status_line = response_lines[0]
+      print(status_line)
       try:
         clientSocket.sendall(response)  # Send the response to the client (as bytes)
         print('Response sent to the client\n')
