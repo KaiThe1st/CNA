@@ -94,8 +94,7 @@ void A_output(struct msg message)
     tolayer3 (A, sendpkt);
 
     /* start timer if first packet in window */
-    if (windowcount == 1)
-      starttimer(A,RTT);
+    starttimer(A,RTT);
 
     /* get next sequence number, wrap back to 0 */
     A_nextseqnum = (A_nextseqnum + 1) % SEQSPACE;
@@ -123,41 +122,42 @@ void A_input(struct pkt packet)
       printf("----A: uncorrupted ACK %d is received\n",packet.acknum);
     total_ACKs_received++;
 
-    /* check if new ACK or duplicate */
+    /* check if individual packets has been ACKed */
     if (windowcount != 0) {
-          int seqfirst = buffer[windowfirst].seqnum;
-          int seqlast = buffer[windowlast].seqnum;
-          /* check case when seqnum has and hasn't wrapped */
-          if (((seqfirst <= seqlast) && (packet.acknum >= seqfirst && packet.acknum <= seqlast)) ||
-              ((seqfirst > seqlast) && (packet.acknum >= seqfirst || packet.acknum <= seqlast))) {
-
+        int seqfirst = buffer[windowfirst].seqnum;
+        int seqlast = buffer[windowlast].seqnum;
+        for (int i = 0; i < windowcount; i++) {
+            int idx = (windowfirst + i) % WINDOW_SIZE;
+            if (buffer[idx].seqnum == packet.acknum && !acked[idx]) {
+                acked[idx] = true
+                stoptimer(A);
             /* packet is a new ACK */
-            if (TRACE > 0)
-              printf("----A: ACK %d is not a duplicate\n",packet.acknum);
-            new_ACKs++;
+                if (TRACE > 0)
+                    printf("----A: ACK %d is not a duplicate\n",packet.acknum);
+                new_ACKs++;
 
-            /* cumulative acknowledgement - determine how many packets are ACKed */
-            if (packet.acknum >= seqfirst)
-              ackcount = packet.acknum + 1 - seqfirst;
-            else
-              ackcount = SEQSPACE - seqfirst + packet.acknum;
+                while (windowcount > 0 && acked[windowfirst]) {
+                    acked[windowfirst] = false;
+                    windowfirst = (windowfirst + 1) % WINDOWSIZE;
+                    windowcount--;
+                }
+            }
+            
+            if (windowcount > 0)
+            starttimer(A, RTT);
+        }
 
-	    /* slide window by the number of packets ACKed */
-            windowfirst = (windowfirst + ackcount) % WINDOWSIZE;
+        // now slide the base forward past any consecutively ACKed slots
 
-            /* delete the acked packets from window buffer */
-            for (i=0; i<ackcount; i++)
-              windowcount--;
+
 
 	    /* start timer again if there are still more unacked packets in window */
             stoptimer(A);
-            if (windowcount > 0)
-              starttimer(A, RTT);
 
-          }
-        }
-        else
-          if (TRACE > 0)
+
+    }
+    else
+    if (TRACE > 0)
         printf ("----A: duplicate ACK received, do nothing!\n");
   }
   else
