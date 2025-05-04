@@ -61,7 +61,7 @@ static struct pkt buffer[WINDOWSIZE];  /* array for storing packets waiting for 
 static int windowfirst, windowlast;    /* array indexes of the first/last packet awaiting ACK */
 static int windowcount;                /* the number of packets currently awaiting an ACK */
 static int A_nextseqnum;               /* the next sequence number to be used by the sender */
-static bool acked[WINDOWSIZE]
+static bool acked[WINDOWSIZE];
 
 /* called from layer 5 (application layer), passed the message to be sent to other side */
 void A_output(struct msg message)
@@ -113,56 +113,50 @@ void A_output(struct msg message)
 */
 void A_input(struct pkt packet)
 {
-  int ackcount = 0;
-  int i;
-
+    int i;
   /* if received ACK is not corrupted */
-  if (!IsCorrupted(packet)) {
-    if (TRACE > 0)
-      printf("----A: uncorrupted ACK %d is received\n",packet.acknum);
-    total_ACKs_received++;
+    if (!IsCorrupted(packet)) {
+        if (TRACE > 0)
+            printf("----A: uncorrupted ACK %d is received\n",packet.acknum);
+        total_ACKs_received++;
 
     /* check if individual packets has been ACKed */
-    if (windowcount != 0) {
-        int seqfirst = buffer[windowfirst].seqnum;
-        int seqlast = buffer[windowlast].seqnum;
-        for (int i = 0; i < windowcount; i++) {
-            int idx = (windowfirst + i) % WINDOW_SIZE;
-            if (buffer[idx].seqnum == packet.acknum && !acked[idx]) {
-                acked[idx] = true
-                stoptimer(A);
-            /* packet is a new ACK */
-                if (TRACE > 0)
-                    printf("----A: ACK %d is not a duplicate\n",packet.acknum);
-                new_ACKs++;
-
-                while (windowcount > 0 && acked[windowfirst]) {
-                    acked[windowfirst] = false;
-                    windowfirst = (windowfirst + 1) % WINDOWSIZE;
-                    windowcount--;
+        if (windowcount != 0) {
+            int seqfirst = buffer[windowfirst].seqnum;
+            int seqlast = buffer[windowlast].seqnum;
+            /* check case when seqnum has and hasn't wrapped */
+            if (((seqfirst <= seqlast) && (packet.acknum >= seqfirst && packet.acknum <= seqlast)) ||
+                ((seqfirst > seqlast) && (packet.acknum >= seqfirst || packet.acknum <= seqlast))) 
+                {
+                    for (i = 0; i < windowcount; i++) {
+                        int idx = (windowfirst + i) % WINDOWSIZE;
+                        if (buffer[idx].seqnum == packet.acknum && !acked[idx]) {
+                            acked[idx] = true;
+                            stoptimer(A);
+                        /* packet is a new ACK */
+                            if (TRACE > 0)
+                                printf("----A: ACK %d is not a duplicate\n",packet.acknum);
+                            new_ACKs++;
+                            /*now slide the base forward past any consecutively ACKed slots*/ 
+                            while (windowcount > 0 && acked[windowfirst]) {
+                                acked[windowfirst] = false;
+                                windowfirst = (windowfirst + 1) % WINDOWSIZE;
+                                windowcount--;
+                            }
+                        }
+                        if (windowcount > 0)
+                            starttimer(A, RTT);
+                    }
                 }
-            }
-            
-            if (windowcount > 0)
-            starttimer(A, RTT);
+  
         }
-
-        // now slide the base forward past any consecutively ACKed slots
-
-
-
-	    /* start timer again if there are still more unacked packets in window */
-            stoptimer(A);
-
-
+        else
+            if (TRACE > 0)
+                printf ("----A: duplicate ACK received, do nothing!\n");
     }
     else
-    if (TRACE > 0)
-        printf ("----A: duplicate ACK received, do nothing!\n");
-  }
-  else
-    if (TRACE > 0)
-      printf ("----A: corrupted ACK is received, do nothing!\n");
+        if (TRACE > 0)
+            printf ("----A: corrupted ACK is received, do nothing!\n");
 }
 
 /* called when A's timer goes off */
@@ -190,6 +184,7 @@ void A_timerinterrupt(void)
 /* entity A routines are called. You can use it to do any initialization */
 void A_init(void)
 {
+  int i;
   /* initialise A's window, buffer and sequence number */
   A_nextseqnum = 0;  /* A starts with seq num 0, do not change this */
   windowfirst = 0;
@@ -198,7 +193,7 @@ void A_init(void)
 		     so initially this is set to -1
 		   */
   windowcount = 0;
-  for (int i = 0; i < WINDOWSIZE; i++)
+  for (i = 0; i < WINDOWSIZE; i++)
     acked[i] = false;
 }
 
