@@ -25,7 +25,7 @@
 #define RTT  16.0       /* round trip time.  MUST BE SET TO 16.0 when submitting assignment */
 #define WINDOWSIZE 6    /* the maximum number of buffered unacked packet
                           MUST BE SET TO 6 when submitting assignment */
-#define SEQSPACE 14      /* the min sequence space for SR must be at least 2 x windowsize */
+#define SEQSPACE 16      /* the min sequence space for SR must be at least 2 x windowsize */
 #define NOTINUSE (-1)   /* used to fill header fields that are not being used */
 
 /* generic procedure to compute the checksum of a packet.  Used by both sender and receiver
@@ -139,21 +139,23 @@ void A_input(struct pkt packet)
                         acked[idx] = true;
 
                         /* if oldest packet is acked, reset timer */
-                        if (acked[windowfirst]) 
-                            stoptimer(A);
                         
                         /* slide windowfirst forward over any consecutive acked slots, stopping at next oldest unacked*/
                         while (windowcount > 0 && acked[windowfirst]) {
                             acked[windowfirst] = false;      /* clear for reuse */
                             windowfirst = (windowfirst + 1) % WINDOWSIZE;
                             windowcount--;
+                            stoptimer(A);
+                            printf("stopping timer");
+                            if (windowcount > 0)
+                                starttimer(A, RTT);
+                            printf("Reached sliding\n");
                         }
+                        printf("Window count %d:", windowcount);
                         break;
-                    }
-                    /* start timer again if there are still more unacked packets in window */
-                    if (windowcount > 0)
-                        starttimer(A, RTT);                   
+                    }                  
                 }
+                /* start timer again if there are still more unacked packets in window */
             }
         }
         else {
@@ -174,12 +176,13 @@ void A_timerinterrupt(void)
     if (TRACE > 0)
         printf("----A: time out,resend packets!\n");
 
-    if (acked[windowfirst]) {
-        if (TRACE > 0)
-            printf ("---A: resending packet %d\n", (buffer[windowfirst]).seqnum);
+    if (!acked[windowfirst]) {
         packets_resent++;
         tolayer3(A, buffer[windowfirst]);
         starttimer(A, RTT);
+        printf("Reached here");
+        if (TRACE > 0)
+            printf ("---A: resending packet %d\n", (buffer[windowfirst]).seqnum);
     }
 }
 
