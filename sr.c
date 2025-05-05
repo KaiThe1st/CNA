@@ -254,6 +254,9 @@ void B_input(struct pkt packet)
             /* packet.seqnum in [rcv_base−WINDOWSIZE … rcv_base−1] */
             /* i.e. it’s a duplicate of something we already delivered */
             if (back > 0 && back <= WINDOWSIZE) {
+                if (TRACE > 0)
+                    printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
+                packets_received++;
                 sendpkt.acknum = packet.seqnum;
             } else {
                 /* packet is corrupted or out of order resend last ACK */
