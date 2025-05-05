@@ -277,14 +277,21 @@ void B_input(struct pkt packet)
         }
         else {
             /* Check already-delivered window → ACK the packet again */
-            int back = (rcv_base - packet.seqnum + SEQSPACE) % SEQSPACE;
+            int back = (expectedseqnum - packet.seqnum + SEQSPACE) % SEQSPACE;
 
             /* packet.seqnum in [rcv_base−WINDOWSIZE … rcv_base−1] */
             /* i.e. it’s a duplicate of something we already delivered */
             if (back > 0 && back <= WINDOWSIZE) {
                 sendpkt.acknum = packet.seqnum;
+            } else {
+                /* packet is corrupted or out of order resend last ACK */
+                if (TRACE > 0)
+                    printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
+                if (expectedseqnum == 0)
+                    sendpkt.acknum = SEQSPACE - 1;
+                else
+                    sendpkt.acknum = expectedseqnum - 1;
             }
-            sendpkt.acknum = (expectedseqnum + SEQSPACE - 1) % SEQSPACE;
         }
     }
     else {
