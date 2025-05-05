@@ -117,6 +117,10 @@ void A_input(struct pkt packet)
     int i;
   /* if received ACK is not corrupted */
     if (!IsCorrupted(packet)) {
+        if (TRACE > 0)
+            printf("----A: uncorrupted ACK %d is received\n",packet.acknum);
+        total_ACKs_received++;
+
     /* check if individual packets has been ACKed */
         if (windowcount != 0) {
             int seqfirst = buffer[windowfirst].seqnum;
@@ -244,21 +248,29 @@ void B_input(struct pkt packet)
 
                 idx = expectedseqnum % WINDOWSIZE;
             }
-        } else {
+        }
+        else {
             /* Check already-delivered window → ACK the packet again */
             int back = (expectedseqnum - packet.seqnum + SEQSPACE) % SEQSPACE;
 
             /* packet.seqnum in [rcv_base−WINDOWSIZE … rcv_base−1] */
             /* i.e. it’s a duplicate of something we already delivered */
             if (back > 0 && back <= WINDOWSIZE) {
-                if back 
                 if (TRACE > 0)
                     printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
                 packets_received++;
                 sendpkt.acknum = packet.seqnum;
             }
         }
-    } else {
+    }
+    else {
+        /* packet is corrupted or out of order resend last ACK */
+        if (TRACE > 0)
+            printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
+        if (expectedseqnum == 0)
+            sendpkt.acknum = SEQSPACE - 1;
+        else
+            sendpkt.acknum = expectedseqnum - 1;
     }
 
   /* Build and send the ACK (keeping your alternating seqnum) */
