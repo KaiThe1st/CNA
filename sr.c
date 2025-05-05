@@ -180,7 +180,7 @@ void A_timerinterrupt(void)
         packets_resent++;
         tolayer3(A, buffer[windowfirst]);
         starttimer(A, RTT);
-        printf("Reached here");
+        /* printf("Reached here"); */
         if (TRACE > 0)
             printf ("---A: resending packet %d\n", (buffer[windowfirst]).seqnum);
     }
