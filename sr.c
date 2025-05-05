@@ -149,7 +149,7 @@ void A_input(struct pkt packet)
                             /* printf("stopping timer"); */
                             if (windowcount > 0)
                                 starttimer(A, RTT);
-                            // printf("Reached sliding\n");
+                            /* printf("Reached sliding\n"); */ 
                         }
                         /* printf("Window count %d:", windowcount); */
                         break;
