@@ -117,10 +117,6 @@ void A_input(struct pkt packet)
     int i;
   /* if received ACK is not corrupted */
     if (!IsCorrupted(packet)) {
-        if (TRACE > 0)
-            printf("----A: uncorrupted ACK %d is received\n",packet.acknum);
-        total_ACKs_received++;
-
     /* check if individual packets has been ACKed */
         if (windowcount != 0) {
             int seqfirst = buffer[windowfirst].seqnum;
@@ -176,12 +172,10 @@ void A_timerinterrupt(void)
     if (TRACE > 0)
         printf("----A: time out,resend packets!\n");
     if (!acked[windowfirst]) {
-        if (TRACE > 0) {
+        if (TRACE > 0)
             printf ("---A: resending packet %d\n", (buffer[windowfirst]).seqnum);
-        }
-        tolayer3(A, buffer[windowfirst]); 
         packets_resent++;
-        /*reset timer after resend each packet*/
+        tolayer3(A, buffer[windowfirst]);
         starttimer(A, RTT);
     }
     /* printf("Reached here"); */
@@ -250,26 +244,21 @@ void B_input(struct pkt packet)
 
                 idx = expectedseqnum % WINDOWSIZE;
             }
-        }
-        else {
+        } else {
             /* Check already-delivered window → ACK the packet again */
             int back = (expectedseqnum - packet.seqnum + SEQSPACE) % SEQSPACE;
 
             /* packet.seqnum in [rcv_base−WINDOWSIZE … rcv_base−1] */
             /* i.e. it’s a duplicate of something we already delivered */
             if (back > 0 && back <= WINDOWSIZE) {
+                if back 
                 if (TRACE > 0)
                     printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
                 packets_received++;
                 sendpkt.acknum = packet.seqnum;
             }
         }
-    }
-    else {
-        /* packet is corrupted or out of order resend last ACK */
-        if (TRACE > 0)
-            printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
-        sendpkt.acknum = expectedseqnum;
+    } else {
     }
 
   /* Build and send the ACK (keeping your alternating seqnum) */
