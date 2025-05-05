@@ -128,35 +128,6 @@ void A_input(struct pkt packet)
             /* check case when seqnum has and hasn't wrapped */
             if (((seqfirst <= seqlast) && (packet.acknum >= seqfirst && packet.acknum <= seqlast)) ||
                 ((seqfirst > seqlast) && (packet.acknum >= seqfirst || packet.acknum <= seqlast))) {
-//                     for (i = 0; i < windowcount; i++) {
-//                         int idx = (windowfirst + i) % WINDOWSIZE;
-//                         if (buffer[idx].seqnum == packet.acknum && !acked[idx]) {
-//                             acked[idx] = true;
-//                         /* packet is a new ACK */
-//                             if (TRACE > 0)
-//                                 printf("----A: ACK %d is not a duplicate\n",packet.acknum);
-//                             new_ACKs++;
-//                             /*now slide the base forward past any consecutively ACKed slots*/ 
-//                             while (windowcount > 0 && acked[windowfirst]) {
-//                                 acked[windowfirst] = false;
-//                                 windowfirst = (windowfirst + 1) % WINDOWSIZE;
-//                                 windowcount--;
-//                             }
-//                         }
-//                         if (windowcount > 0)
-//                             starttimer(A, RTT);
-//                     }
-//                 }
-  
-//         }
-//         else
-//             if (TRACE > 0)
-//                 printf ("----A: duplicate ACK received, do nothing!\n");
-//     }
-//     else
-//         if (TRACE > 0)
-//             printf ("----A: corrupted ACK is received, do nothing!\n");
-// }
             /* packet is a new ACK */
                 if (TRACE > 0)
                     printf("----A: ACK %d is not a duplicate\n",packet.acknum);
@@ -180,14 +151,15 @@ void A_input(struct pkt packet)
                         break;
                     }
                     /* start timer again if there are still more unacked packets in window */
-                    if (windowcount > 0 && windowcount < WINDOWSIZE)
+                    if (windowcount > 0)
                         starttimer(A, RTT);                   
                 }
             }
-            }
-            else
+        }
+        else {
             if (TRACE > 0)
                 printf ("----A: duplicate ACK received, do nothing!\n");
+        }
     }
     else
         if (TRACE > 0)
@@ -197,7 +169,7 @@ void A_input(struct pkt packet)
 /* called when A's timer goes off */
 void A_timerinterrupt(void)
 {
-    int i;
+    /* int i; */
 
     if (TRACE > 0)
         printf("----A: time out,resend packets!\n");

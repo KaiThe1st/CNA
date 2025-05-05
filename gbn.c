@@ -156,7 +156,7 @@ void A_input(struct pkt packet)
         }
         else
           if (TRACE > 0)
-        printf ("----A: duplicate ACK received, do nothing!\n");
+            printf ("----A: duplicate ACK received, do nothing!\n");
   }
   else
     if (TRACE > 0)
