@@ -263,15 +263,6 @@ void B_input(struct pkt packet)
             }
         }
     }
-    else {
-        /* packet is corrupted or out of order resend last ACK */
-        if (TRACE > 0)
-            printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
-        if (expectedseqnum == 0)
-            sendpkt.acknum = SEQSPACE - 1;
-        else
-            sendpkt.acknum = expectedseqnum - 1;
-    }
 
   /* Build and send the ACK (keeping your alternating seqnum) */
     sendpkt.seqnum   = B_nextseqnum;
