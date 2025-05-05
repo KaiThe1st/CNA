@@ -176,14 +176,12 @@ void A_timerinterrupt(void)
     if (TRACE > 0)
         printf("----A: time out,resend packets!\n");
 
-    if (!acked[windowfirst]) {
-        if (TRACE > 0)
-            printf ("---A: resending packet %d\n", (buffer[windowfirst]).seqnum);
-        packets_resent++;
-        tolayer3(A, buffer[windowfirst]);
-        starttimer(A, RTT);
-        /* printf("Reached here"); */
-    }
+    if (TRACE > 0)
+        printf ("---A: resending packet %d\n", (buffer[windowfirst]).seqnum);
+    packets_resent++;
+    tolayer3(A, buffer[windowfirst]);
+    starttimer(A, RTT);
+    /* printf("Reached here"); */
 }
 
 
@@ -261,14 +259,6 @@ void B_input(struct pkt packet)
                     printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
                 packets_received++;
                 sendpkt.acknum = packet.seqnum;
-            } else {
-                /* packet is corrupted or out of order resend last ACK */
-                if (TRACE > 0)
-                    printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
-                if (expectedseqnum == 0)
-                    sendpkt.acknum = SEQSPACE - 1;
-                else
-                    sendpkt.acknum = expectedseqnum - 1;
             }
         }
     }
