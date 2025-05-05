@@ -167,11 +167,11 @@ void A_input(struct pkt packet)
                         /* mark this packet as individually acknowledged */
                         acked[idx] = true;
 
-                        /* if oldest packet is acked, reset timer to next oldest unacked */
+                        /* if oldest packet is acked, reset timer */
                         if (acked[windowfirst]) 
                             stoptimer(A);
                         
-                        /* slide windowfirst forward over any consecutive acked slots */
+                        /* slide windowfirst forward over any consecutive acked slots, stopping at next oldest unacked*/
                         while (windowcount > 0 && acked[windowfirst]) {
                             acked[windowfirst] = false;      /* clear for reuse */
                             windowfirst = (windowfirst + 1) % WINDOWSIZE;
@@ -180,7 +180,7 @@ void A_input(struct pkt packet)
                         break;
                     }
                     /* start timer again if there are still more unacked packets in window */
-                    if (windowcount < WINDOWSIZE)
+                    if (windowcount > 0 && windowcount < WINDOWSIZE)
                         starttimer(A, RTT);                   
                 }
             }
@@ -205,9 +205,8 @@ void A_timerinterrupt(void)
     if (acked[windowfirst]) {
         if (TRACE > 0)
             printf ("---A: resending packet %d\n", (buffer[windowfirst]).seqnum);
-
-        tolayer3(A, buffer[windowfirst]);
         packets_resent++;
+        tolayer3(A, buffer[windowfirst]);
         starttimer(A, RTT);
     }
 }
@@ -244,15 +243,17 @@ static bool  recvd[WINDOWSIZE];
 void B_input(struct pkt packet)
 {
     struct pkt sendpkt;
+    int i;
     int idx;
 
     if (!IsCorrupted(packet)) {
-        /* In‑window test, accounting for wrap‑around */
+        /* New delivery window, accounting for wrap‑around */
         int diff = (packet.seqnum - expectedseqnum + SEQSPACE) % SEQSPACE;
         if (diff < WINDOWSIZE) {
             if (TRACE > 0)
                 printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
             packets_received++;
+
             /* Buffer out‑of‑order or deliver if exactly expected */
             idx = packet.seqnum % WINDOWSIZE;
             if (!recvd[idx]) {
@@ -267,18 +268,33 @@ void B_input(struct pkt packet)
             while (recvd[idx]) {
                 tolayer5(B, recvbuf[idx].payload);
                 recvd[idx] = false;
+
+                /* update state variables */
                 expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
+
                 idx = expectedseqnum % WINDOWSIZE;
             }
         }
         else {
-        /* Outside window → ACK last delivered */
+            /* Check already-delivered window → ACK the packet again */
+            int back = (rcv_base - packet.seqnum + SEQSPACE) % SEQSPACE;
+
+            /* packet.seqnum in [rcv_base−WINDOWSIZE … rcv_base−1] */
+            /* i.e. it’s a duplicate of something we already delivered */
+            if (back > 0 && back <= WINDOWSIZE) {
+                sendpkt.acknum = packet.seqnum;
+            }
             sendpkt.acknum = (expectedseqnum + SEQSPACE - 1) % SEQSPACE;
         }
     }
     else {
-    /* Corrupted → ACK last delivered */
-        sendpkt.acknum = (expectedseqnum + SEQSPACE - 1) % SEQSPACE;
+        /* packet is corrupted or out of order resend last ACK */
+        if (TRACE > 0)
+            printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
+        if (expectedseqnum == 0)
+            sendpkt.acknum = SEQSPACE - 1;
+        else
+            sendpkt.acknum = expectedseqnum - 1;
     }
 
   /* Build and send the ACK (keeping your alternating seqnum) */
@@ -295,8 +311,9 @@ void B_input(struct pkt packet)
 /* entity B routines are called. You can use it to do any initialization */
 void B_init(void)
 {
-    rcv_base = 0;
-    for(int i = 0; i < WINDOWSIZE; i++) 
+    int i;
+    expectedseqnum = 0;
+    for(i = 0; i < WINDOWSIZE; i++) 
         recvd[i] = false;
     B_nextseqnum = 1;
 }
