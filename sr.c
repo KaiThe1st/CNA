@@ -177,12 +177,12 @@ void A_timerinterrupt(void)
         printf("----A: time out,resend packets!\n");
 
     if (!acked[windowfirst]) {
+        if (TRACE > 0)
+            printf ("---A: resending packet %d\n", (buffer[windowfirst]).seqnum);
         packets_resent++;
         tolayer3(A, buffer[windowfirst]);
         starttimer(A, RTT);
         /* printf("Reached here"); */
-        if (TRACE > 0)
-            printf ("---A: resending packet %d\n", (buffer[windowfirst]).seqnum);
     }
 }
 
