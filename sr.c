@@ -175,7 +175,7 @@ void A_timerinterrupt(void)
 
     if (TRACE > 0)
         printf("----A: time out,resend packets!\n");
-    if (!isAcked[windowfirst]) {
+    if (!acked[windowfirst]) {
         if (TRACE > 0) {
             printf ("---A: resending packet %d\n", (buffer[windowfirst]).seqnum);
         }
@@ -269,7 +269,7 @@ void B_input(struct pkt packet)
         /* packet is corrupted or out of order resend last ACK */
         if (TRACE > 0)
             printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
-        sendpkt.acknum = expectedseqnum
+        sendpkt.acknum = expectedseqnum;
     }
 
   /* Build and send the ACK (keeping your alternating seqnum) */
