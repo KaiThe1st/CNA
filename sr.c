@@ -243,40 +243,43 @@ static bool  recvd[WINDOWSIZE];
 /* called from layer 3, when a packet arrives for layer 4 at B*/
 void B_input(struct pkt packet)
 {
-  struct pkt sendpkt;
-  int idx;
+    struct pkt sendpkt;
+    int idx;
 
-  if (!IsCorrupted(packet)) {
-    /* In‑window test, accounting for wrap‑around */
-    int diff = (packet.seqnum - expectedseqnum + SEQSPACE) % SEQSPACE;
-    if (diff < WINDOWSIZE) {
-      /* Buffer out‑of‑order or deliver if exactly expected */
-      idx = packet.seqnum % WINDOWSIZE;
-      if (!recvd[idx]) {
-        recvbuf[idx] = packet;
-        recvd[idx]   = true;
-      }
-      /* ACK every valid in‑window packet */
-      sendpkt.acknum = packet.seqnum;
+    if (!IsCorrupted(packet)) {
+        /* In‑window test, accounting for wrap‑around */
+        int diff = (packet.seqnum - expectedseqnum + SEQSPACE) % SEQSPACE;
+        if (diff < WINDOWSIZE) {
+            if (TRACE > 0)
+                printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
+            packets_received++;
+            /* Buffer out‑of‑order or deliver if exactly expected */
+            idx = packet.seqnum % WINDOWSIZE;
+            if (!recvd[idx]) {
+                recvbuf[idx] = packet;
+                recvd[idx]   = true;
+            }
+            /* ACK every valid in‑window packet */
+            sendpkt.acknum = packet.seqnum;
 
-      /* Now deliver any in‑sequence run starting at expectedseqnum */
-      idx = expectedseqnum % WINDOWSIZE;
-      while (recvd[idx]) {
-        tolayer5(B, recvbuf[idx].payload);
-        recvd[idx] = false;
-        expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
-        idx = expectedseqnum % WINDOWSIZE;
-      }
+            /* Now deliver any in‑sequence run starting at expectedseqnum */
+            idx = expectedseqnum % WINDOWSIZE;
+            while (recvd[idx]) {
+                tolayer5(B, recvbuf[idx].payload);
+                recvd[idx] = false;
+                expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
+                idx = expectedseqnum % WINDOWSIZE;
+            }
+        }
+        else {
+        /* Outside window → ACK last delivered */
+            sendpkt.acknum = (expectedseqnum + SEQSPACE - 1) % SEQSPACE;
+        }
     }
     else {
-      /* Outside window → ACK last delivered */
-      sendpkt.acknum = (expectedseqnum + SEQSPACE - 1) % SEQSPACE;
-    }
-  }
-  else {
     /* Corrupted → ACK last delivered */
-    sendpkt.acknum = (expectedseqnum + SEQSPACE - 1) % SEQSPACE;
-  }
+        sendpkt.acknum = (expectedseqnum + SEQSPACE - 1) % SEQSPACE;
+    }
 
   /* Build and send the ACK (keeping your alternating seqnum) */
     sendpkt.seqnum   = B_nextseqnum;
@@ -294,7 +297,7 @@ void B_init(void)
 {
     rcv_base = 0;
     for(int i = 0; i < WINDOWSIZE; i++) 
-        recvbuf[i] = false;
+        recvd[i] = false;
     B_nextseqnum = 1;
 }
 
